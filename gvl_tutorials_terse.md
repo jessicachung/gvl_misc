@@ -5,7 +5,15 @@ Can't import history from an archive when history is empty
 Trackster:
 /mnt/galaxy/tmp/job_working_directory/000/25/galaxy_25.sh: 39: /mnt/galaxy/tmp/job_working_directory/000/25/galaxy_25.sh: bedGraphToBigWig: not found
 
+temp.bg is not case-sensitive sorted at line 12139.  Please use "sort -k1,1 -k2,2n" with LC_COLLATE=C,  or bedSort and try again.
 
+Barrnap: different answers
+Proportional Venn: missing mako package #IN-TEST
+VEP: doesn't work
+Summary Statisitics: doesn't work
+Indel analysis
+Mpileup
+Freebayes: fails #IN-TEST
 ```
 ----------------------------------------------------------------------
 # Intro to Galaxy
@@ -24,18 +32,18 @@ Trackster:
 ## Histogram and summary statistics
 
 ### Cut out column 1 and 6
- - Text Manipulation > Cut  `#NOTE: two cut tools in the toolbar #IN-TEST`  
+ - Text Manipulation > Cut
    Columns: "c1,c6"  
    Delimited by: Tab  
    Contig_stats.txt  
 
 ### Remove the Header lines of the new file.
- - Text Manipulation > Remove beginning `#NOTE: two tools in the toolbar #IN-TEST`  
+ - Text Manipulation > Remove beginning
    Remove First: 1  
    From: Cut on data1
 
 ### Make a histogram.
- - Graph/Display Data > Histogram `#NOTE: Histogram appears in Statistics and not Graph/Display Data #IN-TEST`  
+ - Graph/Display Data > Histogram
    Dataset: Remove beginning on Data X  
    Numerical column for X axis: c2  
    Number of breaks: 25  
@@ -46,7 +54,6 @@ Trackster:
  - Statistics > Summary Statisitics  
    Summary statistics on: Remove beginning on Data X
    Column or expression: c2
-
 ```
 #FIXME
 Traceback (most recent call last):
@@ -58,7 +65,7 @@ ImportError: No module named rpy
 ---
 
 ### Convert Fastq to Fasta
- - Convert Formats -> FASTQ to FASTA  `#NOTE: tool appears in NGS: QC and manipulation #IN-TEST`
+ - Convert Formats -> FASTQ to FASTA
 `#NOTE: add rename to *.fna`
 
 ### Find Ribosomal RNA Features in a DNA Sequence
@@ -67,13 +74,14 @@ ImportError: No module named rpy
 
 ### Filter for 23S rRNA annotations
  - Filter and Sort -> Select  
-   Select lines from:  barnap file  
+   Select lines from:  barrnap file  
    the pattern: 23S
-`#FIXME: Get an empty file. Nothing matching to 23S`
+`#FIXME: Get an empty file. Nothing matching to 23S. All mapping to 5S`
 
 ----------------------------------------------------------------------
 # Intermediate Galaxy
 
+`#NOTE: should change provided IP address?`
 `#WIP`
 
 
@@ -121,7 +129,6 @@ https://swift.rc.nectar.org.au:8888/v1/AUTH_a3929895f9e94089ad042c9900e1ee82/RNA
  - Filter and Sort>Filter  
    Select 'Cuffdiff ... gene differential expression testing'  
    Condition: c14=='yes'
-
  - Results:  
    ‘Ank’ from chr4:137014-150378  
    ‘CG2177’ from chr4:331557-334534  
@@ -179,9 +186,9 @@ https://swift.rc.nectar.org.au:8888/v1/AUTH_a3929895f9e94089ad042c9900e1ee82/RNA
  - Result: 53 differentially expressed genes
 
 ## Count reads in Features
- - NGS: SAM Tools>BAM-to-SAM
-   BAM File to Convert: batch1-accepted_hits.bam
-   Include header in output
+ - NGS: SAM Tools>BAM-to-SAM  
+   BAM File to Convert: batch1-accepted_hits.bam  
+   Include header in output  
 ```
 #NOTE: Do we still need to do this?
 From tutorial: "*We convert from bam to sam format because the tool ‘htseq-count’
@@ -193,24 +200,24 @@ I ran htseq-count using both bam and sam files, and got the same result for both
    bam/sam file from your history: batch1: converted SAM  
    Additional bam/sam file from your history: batch2: converted SAM  
    Specify additional bam/sam file inputs 1 -> Additional bam/sam file from your history: batch3: converted SAM
-   `#NOTE: change to add multiple datasets`
+   `#NOTE: change to add multiple datasets`  
    Keep rest defaults
 
 ## Differential gene expression analysis using EdgeR
  - NGS RNA analysis -> Differential_Count  
-   Select an input matrix - rows are contigs, columns are counts for each sample: bams to DGE count matrix_htseqsams2mx.xls
-   Title for job outputs: Differential Counts-EdgeR
-   Treatment Name: Batch
-   Select columns containing treatment.: tick c2: Batch1-sam, c3: Batch2-sam, c4: Batch3-sam
-   Control Name: Chem
-   Select columns containing control.: tick c5: Chem1-sam, c6: Chem2-sam, c7: Chem3-sam
-   Run this model using edgeR
-   Keep rest defaults
- - Filter and Sort -> Filter
-   Filter: DifferentialCounts_topTable_edgeR.xls
-   With following condition: c6 <= 0.05
-   Number of header lines to skip: 1
- - Result: 55 differentially expressed genes
+   Select an input matrix: bams to DGE count matrix_htseqsams2mx.xls  
+   Title for job outputs: Differential Counts-EdgeR  
+   Treatment Name: Batch  
+   Select columns containing treatment.: tick c2: Batch1-sam, c3: Batch2-sam, c4: Batch3-sam `#NOTE: Change to bams`  
+   Control Name: Chem  
+   Select columns containing control.: tick c5: Chem1-sam, c6: Chem2-sam, c7: Chem3-sam  
+   Run this model using edgeR  
+   Keep rest defaults  
+ - Filter and Sort -> Filter  
+   Filter: DifferentialCounts_topTable_edgeR.xls  
+   With following condition: c6 <= 0.05  
+   Number of header lines to skip: 1  
+ - Result: 55 differentially expressed genes  
 
 
 `#NOTE: not seeing generated MDS plot or heatmap from Differential_Count tool with edgeR, but can see with DESeq2`
@@ -499,27 +506,28 @@ Total	48267005	24.13	N/A	N/A	N/A
  - Rename the file to something useful eg 'NA12878.chr20_2mb.30xPE.realigned'
 
 ### IGV
- - Open the realigned BAM file in IGV `#NOTE: using web_current won't make the bam files show in the same window`
-   It should appear as a new frame below the already opened previous BAM
-   Compare the realigned BAM file to original BAM around an indel
-   check region chr20:1163914-1163954
- - Result: reads originally providing evidence of a ‘G/C’ variant at chr20:1163937 to be realigned with a 10bp insertion at chr20:1163835 and no evidence of the variant
+ - Open the realigned BAM file in IGV `#NOTE: using web_current won't make the bam files show in the same window`  
+   It should appear as a new frame below the already opened previous BAM  
+   Compare the realigned BAM file to original BAM around an indel  
+   check region chr20:1163914-1163954  
+ - Result: reads originally providing evidence of a ‘G/C’ variant at chr20:1163937
+   to be realigned with a 10bp insertion at chr20:1163835 and no evidence of the variant
 
 ---
 
 ## FreeBayes [10 min]
 
- - NGS: Variation Detection -> Free Bayes `#NOTE: Need to change parameters`
-   BAM file: 'NA12878.chr20_2mb.30xPE.realigned'
-   Using reference genome: hg19
-   Basic or Advanced options: Advanced
-   Limit analysis to listed targets: Limit By target File
-   Limit analysis to targets listed in the BED-format FILE: chr20_2mb.bed
-   Set allele scope options: Set
-   Ignore insertion and deletion alleles: check
-   Set input filters options: Set
-   Exclude reads with more than N base mismatches, ignoring gaps with quality >= mismatch-base-quality-threshold: 1    
-   Keep all other defaults
+ - NGS: Variation Detection -> Free Bayes `#NOTE: Need to change parameters`  
+   BAM file: 'NA12878.chr20_2mb.30xPE.realigned'  
+   Using reference genome: hg19  
+   Basic or Advanced options: Advanced  
+   Limit analysis to listed targets: Limit By target File  
+   Limit analysis to targets listed in the BED-format FILE: chr20_2mb.bed  
+   Set allele scope options: Set  
+   Ignore insertion and deletion alleles: check  
+   Set input filters options: Set  
+   Exclude reads with more than N base mismatches, ignoring gaps with quality >= mismatch-base-quality-threshold: 1  
+   Keep all other defaults  
    ```
    Set allelic scope? Yes
    Ignore indels alleles: Yes
@@ -528,6 +536,7 @@ Total	48267005	24.13	N/A	N/A	N/A
    Exclude reads with more than N base mismatches, ignoring gaps with quality >= Q (third option abobe): 1
    ```
    ```
+   #IN-TEST: Changed to older version of freebayes
     Traceback (most recent call last):
       File "/mnt/galaxy/galaxy-app/lib/galaxy/jobs/runners/__init__.py", line 163, in prepare_job
         job_wrapper.prepare()
@@ -536,67 +545,61 @@ Total	48267005	24.13	N/A	N/A	N/A
       File "/mnt/galaxy/galaxy-app/lib/galaxy/tools/evaluation.py", line 422, in build
         raise e
     NotFound: cannot find 'report_monomorphic' while searching for 'options_type.optional_inputs.report_monomorphic'
-
-    Works if Choose parameter selection level is set to: 1:Simple diploid calling
-    4,243 lines, 57 comments
-```
- - Rename to ‘NA12878.FreeBayes.chr20_2mb.vcf’
-   Check the generated list of variants
-   Note there are ~6100 variants in this list
-   Open the VCF file in IGV, using the link in the history panel
-   Find a region where FreeBayes has called a variant but Mpileup hasn’t
-   Try chr20:1,123,714-1,128,378
-   Note that FreeBayes does not do any filtering, but rather leaves the user to filter based on e.g. variant quality scores. So it returns many more variants, many of which will be low quality. In other words, FreeBayes will call a potential variant based on much less evidence than MPileup.
-   FreeBayes gives you more false positives
-   Mpileup will give you more false negatives
+   ```
+ - Rename to ‘NA12878.FreeBayes.chr20_2mb.vcf’  
+   Note there are ~6100 variants in this list  
+ - IGV:  
+   Try chr20:1,123,714-1,128,378  
 
 ---
 ## Unified Genotyper
 
- - NGS: GATK2 Tools ->Unified Genotyper
-   BAM file: Realigned BAM file ‘NA12878.chr20_2mb.30xPE.realigned’
-   Using reference genome: Human (hg19)
-   dbSNP ROD file: dbsnp135_excludingsitesafter129_chr20.vcf
-   Genotype likelihoods calculation model to employ: SNP
-   Basic or Advanced GATK options: Advanced
-   Add new Operate on Genomic intervals:
-   List of regions or sites on which to operate: chr20_2mb
- - Rename the file to something useful eg ‘NA12878.GATK.chr20_2mb.vcf’
- - Note there are ~3200 variants in this list (3,189 lines)
- - Open the VCF file in IGV, using the link in the history panel
-   Find a regions where GATK has called a variant but FreeBayes/mpileup hasn’t, and vice versa
-   Try chr20:1,123,714-1,128,378
-   We now have three different variant call sets from the same data. Browse around in IGV looking at places where they are different: eg look at: chr20:1,127,767-1,127,906
-   Here each of the variant callers has given a different SNP call. This is a confusing region for SNP callers due to the 15bp deletion, which may or may not be on both alleles.
-   We could immediately improve the FreeBayes callset by filtering on variant quality scores. If you want, you can do this with the NGS: GATK>Select Variants tool, choose the FreeBayes vcf file, click ‘Add new criteria to use when selecting data.’, use ‘QUAL>50’, Execute)
+ - NGS: GATK2 Tools ->Unified Genotyper  
+   BAM file: Realigned BAM file ‘NA12878.chr20_2mb.30xPE.realigned’  
+   Using reference genome: Human (hg19)  
+   dbSNP ROD file: dbsnp135_excludingsitesafter129_chr20.vcf  
+   Genotype likelihoods calculation model to employ: SNP  
+   Basic or Advanced GATK options: Advanced  
+   Add new Operate on Genomic intervals:  
+   List of regions or sites on which to operate: chr20_2mb  
+ - Rename the file to something useful eg ‘NA12878.GATK.chr20_2mb.vcf’  
+ - Note there are ~3200 variants in this list (3,189 lines)  
+ - Open the VCF file in IGV, using the link in the history panel  
+   Try chr20:1,123,714-1,128,378  
+   chr20:1,127,767-1,127,906  
 
 ---
 ## Evaluate known variants
- - Evaluate dbSNP concordance and Ti/Tv ratio using the GATK VariantEval tool
-   NGS: GATK2 Tools -> Eval Variants
-   Variant 1: NA12878.Mpileup.chr20_2mb.vcf
-   Add new Variant
-   Variant 2: NA12878.FreeBayes.chr20_2mb.vcf
-   Add new Variant
-   Variant 3: NA12878.UnifiedGeno.chr20_2mb.vcf
-   Using reference genome: Human (hg19)
-   Provide a dbsnp reference-ordered data file: set dbSNP
-   dbSNP ROD file: dbSNP135_excludingsitesafter129.chr20.vcf
-   Basic or Advanced Analysis options: Advanced
-   Eval modules to apply on the eval track(s):
-   CompOverlap
-   TiTvVariantEvaluator
-   Do not use the standard eval modules by default: check
-   Execute
-   When finished, change the Datatype of the generated Eval Variant (report) to ‘txt’
+ - NGS: GATK2 Tools -> Eval Variants  
+   Variant 1: NA12878.Mpileup.chr20_2mb.vcf  
+   Add new Variant  
+   Variant 2: NA12878.FreeBayes.chr20_2mb.vcf  
+   Add new Variant  
+   Variant 3: NA12878.UnifiedGeno.chr20_2mb.vcf  
+   Using reference genome: Human (hg19)  
+   Provide a dbsnp reference-ordered data file: set dbSNP  
+   dbSNP ROD file: dbSNP135_excludingsitesafter129.chr20.vcf  
+   Basic or Advanced Analysis options: Advanced  
+   Eval modules to apply on the eval track(s):  
+     CompOverlap  
+     TiTvVariantEvaluator  
+   Do not use the standard eval modules by default: check  
 
 ### Venn diagram
-`#FIXME`
+`#IN-TEST`
 
 ### Annotation
 `#FIXME`
 
-`#NOTE: This tutorial seems too long`
+```#NOTE: This tutorial seems too long
+Load files
+QC
+Alignment
+Local realignment
+Unified Genotyper
+Freebayes
+Evaluate and Venn
+```
 
 
 ----------------------------------------------------------------------
@@ -619,7 +622,7 @@ https://swift.rc.nectar.org.au:8888/v1/AUTH_377/public/Assembly/ERR048396_2.fast
    FASTQ reads: eg. ERR048396_1.fastq
 
 ### Quality trim the reads
- - NGS QC and manipulation > Trimmomatic `#FIXME: change trimmomatic to Simon's test-toolshed version`  
+ - NGS QC and manipulation > Trimmomatic `#NOTE: Change options, don't need illumina_adapters.fa`
    Direction 1 fastq reads to trim: ERR048396_1.fastq  
    Direction 1 fastq reads to trim: ERR048396_2.fastq  
    Quality encoding: phred33  
@@ -642,7 +645,8 @@ https://swift.rc.nectar.org.au:8888/v1/AUTH_377/public/Assembly/ERR048396_2.fast
    Read dataset for direction 1: 7: Trimmomatic on da..immed pairs  
    Read dataset for direction 2: 8: Trimmomatic on da..immed pairs  
    Click the “Add new Input read libraries” button.  
-   Read dataset: 9: Trimmomatic on da..immed reads
+   Read dataset: 9: Trimmomatic on da..immed reads `#NOTE: Don't have this file`
+
 
 ### Stats
  - FASTA Manipulation > Fasta Statistics
@@ -656,6 +660,8 @@ https://swift.rc.nectar.org.au:8888/v1/AUTH_377/public/Assembly/ERR048396_2.fast
  - Filter and Sort > Filter tool.
    Contig stats
    c2 > 100
-
+ - Pick a node which has high coverage
+ - Fasta manipulation > Fasta Extract Sequence
+ - BLAST sequence
 
 ----------------------------------------------------------------------
