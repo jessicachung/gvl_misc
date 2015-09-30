@@ -2,18 +2,12 @@
 General bugs:
 Can't import history from an archive when history is empty
 
-Trackster:
-/mnt/galaxy/tmp/job_working_directory/000/25/galaxy_25.sh: 39: /mnt/galaxy/tmp/job_working_directory/000/25/galaxy_25.sh: bedGraphToBigWig: not found
-
-temp.bg is not case-sensitive sorted at line 12139.  Please use "sort -k1,1 -k2,2n" with LC_COLLATE=C,  or bedSort and try again.
-
+Trackster: temp.bg is not case-sensitive sorted at line 12139.  Please use "sort -k1,1 -k2,2n" with LC_COLLATE=C,  or bedSort and try again.
 Barrnap: different answers
-Proportional Venn: missing mako package #IN-TEST
 VEP: doesn't work
 Summary Statisitics: doesn't work
 Indel analysis
 Mpileup
-Freebayes: fails #IN-TEST
 ```
 ----------------------------------------------------------------------
 # Intro to Galaxy
@@ -82,7 +76,6 @@ ImportError: No module named rpy
 # Intermediate Galaxy
 
 `#NOTE: should change provided IP address?`
-`#WIP`
 
 
 ----------------------------------------------------------------------
@@ -199,7 +192,7 @@ I ran htseq-count using both bam and sam files, and got the same result for both
    Gene model (GFF) file to count reads over from your current history: genes.gtf  
    bam/sam file from your history: batch1: converted SAM  
    Additional bam/sam file from your history: batch2: converted SAM  
-   Specify additional bam/sam file inputs 1 -> Additional bam/sam file from your history: batch3: converted SAM
+   Specify additional bam/sam file inputs 1 -> Additional bam/sam file from your history: batch3: converted SAM  
    `#NOTE: change to add multiple datasets`  
    Keep rest defaults
 
@@ -232,33 +225,26 @@ I ran htseq-count using both bam and sam files, and got the same result for both
 
 ## Look at overlap
  - Graph/Display Data -> proportional venn  
-   title: CommonSection
-   input file 1: CuffDiff-SignificantlyExpressedGenes
-   column index: 2
-   as name: CuffDiff
-   input file 2: EdgeR-SignificantlyExpressedGenes
-   column index file 2: 0
-   as name: EdgeR
-   two or three: three
-   input file 3: Deseq-SignificantlyExpressedGenes
-   column index file 3: 0
-   as name file 3: Deseq
+   title: CommonSection  
+   input file 1: CuffDiff-SignificantlyExpressedGenes  
+   column index: 2  
+   as name: CuffDiff  
+   input file 2: EdgeR-SignificantlyExpressedGenes  
+   column index file 2: 0  
+   as name: EdgeR  
+   two or three: three  
+   input file 3: Deseq-SignificantlyExpressedGenes  
+   column index file 3: 0  
+   as name file 3: Deseq  
 
-```
-#FIXME:
-Traceback (most recent call last):
-  File "/mnt/galaxy/shed_tools/toolshed.g2.bx.psu.edu/repos/idot/prop_venn/cc6707a1e044/prop_venn/venner.py", line 12, in <module>
-    from mako.template import Template
-ImportError: No module named mako.template
-```
-
+## Compare gene lists
  - Text Manipulation -> cut
    filtered cuffdiff (c3)
  - Text Manipulation -> cut
    filtered edgeR (c1)
  - Text Manipulation -> cut
    filtered deseq2 (c1)
- - Join, Subtract and Group -> Compare two Datasets `NOTE: tool in Join, Subtract and Group`
+ - Join, Subtract and Group -> Compare two Datasets `#NOTE: tool in Join, Subtract and Group`
    Compare: cuffDiff-Column1
    against: EdgeR-Column1
  - Rename to something more meaningful: eg Common genes CuffDiff and EdgeR
@@ -305,15 +291,13 @@ Result: 1075182 reads
 
 ### Convert the SAM file to BAM file
  - NGS: Sam Tools>SAM-to-BAM [1 min]
-`#NOTE: Need to manually change sam database/build as hg19 to be able to use SAM-to-BAM. This might be fixed with bwa loc files or by using bwa-mem`
 
 ### Check quality metrics
  - NGS: Sam Tools>Flagstat
  - Result: 1075182 reads
 
 ### Visualization
- - Display with IGV web current
-`#NOTE: need to manually specify bam as hg19 otherwise web_current option doesn't appear in 'display with IGV'. This might be fixed with bwa loc files or by using bwa-mem`  
+ - Display with IGV web current  
    Select chr22
  - check chr22:35,783,964-35,821,038  
    check chr22:35,947,405-35,947,867
@@ -394,10 +378,9 @@ https://swift.rc.nectar.org.au:8888/v1/AUTH_377/public/variantCalling_ADVNCD/NA1
    Library name (LB): Tutorial_library  
    Platform/technology used to produce the reads (PL): ILLUMINA  
    Sample (SM): NA12878  
-`#NOTE: need to update inputs with changed BWA options`
-`#NOTE: change ID to 'bwa' when mapping or GATK won't work`
-`#NOTE: don't need to convert to BAM, but need to specify hg19 for IGV.
-BWA-mem automatically sets the file to hg19`
+  `#NOTE: need to update inputs with changed BWA options`  
+  `#NOTE: change ID to 'bwa' when mapping or GATK won't work`  
+  `#NOTE: don't need to convert to BAM`  
    Read group identifier (ID): bwa `NOTE: This needs to be bwa or gatk will complain`
    Read group sample name (SM): NA12878
    Library name (LB): Tutorial_LB
@@ -435,26 +418,6 @@ From GATK 2.8:
 
 ```
 
-```
-output summary sample:
-Target	total_coverage	average_coverage	NA12878_total_cvg	NA12878_mean_cvg	NA12878_granular_Q1	NA12878_granular_median	NA12878_granular_Q3	NA12878_%_above_15
-chr20:1-2000000	48169937	24.83	48169937	24.83	21	26	31	92.5
-```
-
-```
-bwa-mem, gatk2 output summary sample:
-sample_id	total	mean	granular_third_quartile	granular_median	granular_first_quartile	%_bases_above_15
-NA12878	48268897	24.88	31	26	21	92.5
-Total	48268897	24.88	N/A	N/A	N/A
-```
-
-```
-bwa-mem, gatk1 output summary sample:
-sample_id	total	mean	granular_third_quartile	granular_median	granular_first_quartile	%_bases_above_15
-NA12878	48267005	24.13	31	26	21	89.7
-Total	48267005	24.13	N/A	N/A	N/A
-```
-
 ---
 ## SNV Calling: Mpileup `#FIXME: This section doesn't work`
 
@@ -465,13 +428,8 @@ Total	48267005	24.13	N/A	N/A	N/A
    Perform INDEL calling: Do not perform indel calling  
    Set advanced options: Advanced  
    List of regions or sites on which to operate: chr20.bed
-   ```
-   #NOTE:
-   BCF
-   Compressed
-   Select regions to call: From an uploaded BED file (--positions)
-   BED file: chr20:bed
 
+   ```
    #FIXME:
    Mpileup fails when using BCF. Known bug in galaxy:
    https://trello.com/c/cYkUbipj/2734-error-samtools-mpileup-form-problems-formerly-metadata-issue
@@ -480,7 +438,7 @@ Total	48267005	24.13	N/A	N/A	N/A
    ```
 
 ### Convert the BCF file to a VCF file  
- - NGS:SAM Tools> bcftools view `#NOTE: There are two tools called bcftools view. `
+ - NGS:SAM Tools> bcftools view
    Choose a bcf file to view: Mpileup file just generated ‘MPileup on data... and data …’
    Keep other defaults
  - Rename the file to something useful eg ‘NA12878.Mpileup.chr20_2mb.vcf’
@@ -535,17 +493,6 @@ Total	48267005	24.13	N/A	N/A	N/A
    Perform mismatch filtering? Yes
    Exclude reads with more than N base mismatches, ignoring gaps with quality >= Q (third option abobe): 1
    ```
-   ```
-   #IN-TEST: Changed to older version of freebayes
-    Traceback (most recent call last):
-      File "/mnt/galaxy/galaxy-app/lib/galaxy/jobs/runners/__init__.py", line 163, in prepare_job
-        job_wrapper.prepare()
-      File "/mnt/galaxy/galaxy-app/lib/galaxy/jobs/__init__.py", line 859, in prepare
-        self.command_line, self.extra_filenames, self.environment_variables = tool_evaluator.build()
-      File "/mnt/galaxy/galaxy-app/lib/galaxy/tools/evaluation.py", line 422, in build
-        raise e
-    NotFound: cannot find 'report_monomorphic' while searching for 'options_type.optional_inputs.report_monomorphic'
-   ```
  - Rename to ‘NA12878.FreeBayes.chr20_2mb.vcf’  
    Note there are ~6100 variants in this list  
  - IGV:  
@@ -586,20 +533,10 @@ Total	48267005	24.13	N/A	N/A	N/A
    Do not use the standard eval modules by default: check  
 
 ### Venn diagram
-`#IN-TEST`
+ - proportional venn
 
 ### Annotation
 `#FIXME`
-
-```#NOTE: This tutorial seems too long
-Load files
-QC
-Alignment
-Local realignment
-Unified Genotyper
-Freebayes
-Evaluate and Venn
-```
 
 
 ----------------------------------------------------------------------
