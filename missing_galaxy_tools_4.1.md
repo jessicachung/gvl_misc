@@ -302,3 +302,86 @@ Reload the tool panel
 In the Galaxy admin page, go to 'Reload a tool's configuration' and click the
 option to reload the whole toolbox. This will take about a minute to refresh the
 database and build a new `integrated_tool_panel.xml`.
+
+
+-----
+
+## Fix data manager path
+
+Change revision number for data manager:
+```bash
+sudo su galaxy
+cd /mnt/galaxyIndices/tool-data/dm/toolshed.g2.bx.psu.edu/repos/devteam/data_manager_fetch_genome_dbkeys_all_fasta
+mv bca4c608408c/ 776bb1b478a0
+```
+
+-----
+
+## Fix indices for picard tools
+
+To make indices appear, add to `/mnt/galaxy/var/shed_tool_data_table_conf.xml`:
+```
+<table comment_char="#" name="picard_indexes">
+        <columns>value, dbkey, name, path</columns>
+        <file path="/mnt/galaxyIndices/tool-data/dm/toolshed.g2.bx.psu.edu/repos/devteam/data_manager_gatk_picard_index_builder/700f2df51eb0/gatk_sorted_picard_index.loc" />
+        <tool_shed_repository>
+            <tool_shed>toolshed.g2.bx.psu.edu</tool_shed>
+            <repository_name>data_manager_gatk_picard_index_builder</repository_name>
+            <repository_owner>devteam</repository_owner>
+            <installed_changeset_revision>700f2df51eb0</installed_changeset_revision>
+            </tool_shed_repository>
+    </table>
+
+```
+
+-----
+
+## Remove tools
+
+- remove CollectGcBiasMetrics (picard) (via xml file)
+- remove Summary Statistics (via xml file)
+
+
+In:
+```bash
+vi /mnt/galaxy/galaxy-app/config/shed_tool_conf_cloud.xml
+```
+
+Remove lines:
+
+```
+<tool file="toolshed.g2.bx.psu.edu/repos/devteam/picard/efc56ee1ade4/picard/picard_CollectGcBiasMetrics.xml" guid="toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_CollectGcBiasMe
+trics/1.136.0">
+  <tool_shed>toolshed.g2.bx.psu.edu</tool_shed>
+    <repository_name>picard</repository_name>
+    <repository_owner>devteam</repository_owner>
+    <installed_changeset_revision>efc56ee1ade4</installed_changeset_revision>
+    <id>toolshed.g2.bx.psu.edu/repos/devteam/picard/picard_CollectGcBiasMetrics/1.136.0</id>
+    <version>1.136.0</version>
+```
+
+And in:
+```bash
+vi /mnt/galaxy/galaxy-app/config/tool_conf.xml
+```
+
+Remove lines:
+```
+    <tool file="stats/gsummary.xml" />
+```
+
+-----
+
+### Java 7 for GATK
+
+In both files:
+```bash
+vi /mnt/galaxy/tools/gatk/1.4/devteam/package_gatk_1_4/ec95ec570854/env.sh
+
+vi /mnt/galaxy/tools/environment_settings/GATK2_PATH/iuc/gatk2/84584664264c/env.sh
+```
+
+Add line:
+```bash
+PATH=/usr/lib/jvm/java-7-oracle/jre/bin/:$PATH; export PATH
+```
