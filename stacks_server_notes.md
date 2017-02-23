@@ -274,14 +274,14 @@ sudo vi /etc/apache2/conf-available/stacks.conf
 Add the following lines to the new file.
 
 ```
-<Directory "/usr/local/share/stacks/php">
+<Directory "/usr/local/share/stacks/php/">
     Order deny,allow
     Deny from all
     Allow from all
 	Require all granted
 </Directory>
 
-Alias /stacks "/usr/local/share/stacks/php"
+Alias / "/usr/local/share/stacks/php/"
 ```
 
 Create a symlink to the conf file in the `conf-enabled` directory.
@@ -296,8 +296,35 @@ Restart apache.
 ```bash
 sudo service apache2 restart
 ```
+Check `<IP_address>`:81 which should have the Stacks interface.
 
-Check `<IP_address>`/stacks/ which should be accessible.
+## Configure nginx
+
+Add nginx location.
+
+```bash
+cd /etc/nginx/sites-enabled/
+sudo vi stacks.locations
+```
+
+Add to `stacks.locations`:
+
+```
+location /stacks/ {
+    rewrite ^/stacks/(.*) /$1 break;
+    proxy_pass http://localhost:81;
+    proxy_set_header   X-Forwarded-Host $host;
+    proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+}
+```
+
+Restart nginx.
+
+```bash
+sudo service nginx restart
+```
+
+Check `<IP_address>`/stacks/ which should have the Stacks interface.
 
 
 ## Configure database access
