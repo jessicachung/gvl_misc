@@ -580,3 +580,29 @@ chmod +x *.sh
 Test if working by logging on with VNC.
 
 Copy to the Desktop directory of existing users.
+
+-----
+
+# Optional aesthetic stuff
+
+## Add Stacks to the dashboard
+
+Edit:
+```
+sudo vi /opt/gvl/gvldash/gvldash/service_registry.yml
+```
+
+And add:
+```
+- access_instructions: null
+  description: 'The Stacks web interface.
+
+    '
+  display_name: Stacks
+  installation_path: /usr/sbin/sshd
+  logo: /static/images/logo_public_html.png
+  name: stacks
+  process_name: nginx
+  type: web
+  virtual_path: /stacks
+```
