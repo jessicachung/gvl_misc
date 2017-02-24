@@ -113,12 +113,12 @@ Restart nginx
 sudo service nginx restart
 ```
 
-Check <IP>/shiny
+Check `<IP>`/shiny
 
 Install R packages by entering container.
 
 ```bash
-sudo docker exec -it xenodochial_williams bash
+sudo docker exec -it <container_name> bash
 R
 # install packages
 # exit R
@@ -128,7 +128,6 @@ R
 -----
 
 ## RStudio example
-
 
 ```
 sudo docker pull rocker/rstudio
