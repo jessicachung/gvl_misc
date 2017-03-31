@@ -420,11 +420,20 @@ Test:
 echo "Test" | mail -s "Mail test TLS" your_email_address@gmail.com
 ```
 
-*TODO: Stacks export email notification*
+Edit export settings:
 
 ```bash
-vi /usr/local/bin/stacks_export_notify.pl
+sudo vi /usr/local/bin/stacks_export_notify.pl
 ```
+
+Change `$url` to:
+
+```
+my $url           = "http://115.146.85.115/stacks/export/";
+```
+
+Test Stacks export through the web interface.
+Note that the email may be filtered as spam.
 
 -----
 
