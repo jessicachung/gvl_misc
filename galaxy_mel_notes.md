@@ -1,5 +1,25 @@
 # Galaxy-Mel notes
 
+-----
+
+## Fix images for tools
+
+Edit file:
+```bash
+sudo vi /mnt/galaxy/galaxy-app/lib/tool_shed/util/shed_util_common.py
+```
+
+Change line 614 in the file from:
+```
+route_to_images = 'admin_toolshed/static/images/%s' % encoded_repository_id
+```
+to
+```
+route_to_images = 'galaxy/admin_toolshed/static/images/%s' % encoded_repository_id
+```
+
+-----
+
 ## Update Samtools
 
 Old version of Samtools can cause the whole Galaxy server to crash in GVL 4.0.
