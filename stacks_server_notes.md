@@ -494,6 +494,29 @@ sudo vi /usr/local/bin/index_radtags.pl
 # #!/usr/bin/perl
 ```
 
+## Fix Stacks Perl
+
+Some Stacks Perl scripts require DBI which `/usr/bin/perl` can access, but not the 
+Anaconda Perl. Change the shebang from
+
+```
+#!/usr/bin/env perl
+```
+
+to
+
+```
+#!/usr/bin/perl
+```
+
+for the following scripts:
+
+```
+/usr/local/bin/load_sequences.pl
+/usr/local/bin/index_radtags.pl
+/usr/local/bin/load_sequences.pl
+```
+
 ## Install Bowtie
 
 Conda may not have the latest versions of bowtie. Check http://bioconda.github.io/
