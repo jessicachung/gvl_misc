@@ -93,8 +93,6 @@ sudo make install
 
 # Setup Stacks web interface
 
-*TODO: Can this be changed to nginx?*
-
 ## Setup Apache and ports
 
 Apache clashes with nginx, so change port to 81.
@@ -133,7 +131,10 @@ Remote: CIDR
 CIDR: 0.0.0.0/0
 ```
 
-Then add it to the instance you just launched:
+Repeat the above '+ Add Rule' step to add port 9996 for MySQL if you have
+worker nodes.
+
+Then add the security group to the instance you just launched:
 
 On the right menu bar, under Compute, click on 'Instances'. Find your instance
 and click the dropdown button on the right-most column. Then click 'Edit
@@ -141,6 +142,7 @@ Security Groups' and click the '+' button next to the security group you just
 created to apply it to the instance.
 
 Test by seeing if you can access `<IP_address>`:81 in your browser.
+
 
 ## Install dependencies
 
@@ -169,21 +171,33 @@ sudo mysql
 # sudo mysql -p
 ```
 
-In MySQL, add user `ubuntu` with a password e.g. (`ubuntu_stacks`) to MySQL.
+In MySQL, add user `ubuntu` with a password e.g. (`my_password`) to MySQL. 
+Make the password secure if you plan to access the database remotely with your
+worker nodes (i.e. you have more than one machine in your cluster).
 
 ```sql
-GRANT ALL ON *.* TO 'ubuntu'@'localhost' IDENTIFIED BY 'ubuntu_stacks';
+GRANT ALL ON *.* TO 'ubuntu'@'localhost' IDENTIFIED BY 'my_password';
 ```
 
-(Optional) Grant permissions to everyone
+If you have worker nodes, allow access with:
+
+```sql
+GRANT ALL ON *.* TO 'ubuntu'@'%' IDENTIFIED BY 'my_password';
+```
+
+(Optional) Grant permissions to everyone at localhost.
 
 ```sql
 GRANT ALL ON *.* TO ''@'localhost' IDENTIFIED BY '';
 exit
 ```
 
+
 Note:
 ```
+# To change password
+SET PASSWORD FOR 'ubuntu'@'localhost' = PASSWORD('my_new_password');
+
 # To revoke privileges
 REVOKE ALL PRIVILEGES ON *.* FROM ''@'localhost';
 
@@ -206,12 +220,15 @@ Change config for stacks MySQL access.
 sudo vi /usr/local/share/stacks/sql/mysql.cnf
 ```
 
-And replace the user and password. eg:
+And replace the user and password (and also the port if you have multiple 
+machines). eg:
+
 ```
 user=ubuntu
-password=ubuntu_stacks
+password=my_password
+host=localhost
+port=9996
 ```
-
 
 ## Change location of the MySQL database (optional)
 
@@ -327,7 +344,7 @@ sudo service nginx restart
 Check `<IP_address>`/stacks/ which should have the Stacks interface.
 
 
-## Configure database access
+## Configure database access for the Stacks web interface
 
 Edit the PHP config file to allow access to MySQL using the `ubuntu` user and
 password.
@@ -337,7 +354,62 @@ sudo cp /usr/local/share/stacks/php/constants.php.dist /usr/local/share/stacks/p
 sudo vi /usr/local/share/stacks/php/constants.php
 ```
 
-Set `$db_user` and `$db_pass` variables to `ubuntu` and `ubuntu_stacks`.
+Set `$db_user` and `$db_pass` variables to `ubuntu` and `my_password`.
+
+-----
+
+## Configure remote MySQL access
+
+Configure MySQL for Stacks if you have multiple machines in your cluster.
+
+```bash
+sudo vi /etc/mysql/my.cnf
+```
+
+Under the `[mysqld]` heading:
+
+ - Change port to `9996`
+ - change bind address to `0.0.0.0`
+
+
+## Configure Stacks on worker nodes
+
+For each worker node, login and install MySQL like you did for the head node.
+
+```bash
+sudo apt-get update
+sudo apt-get install mysql-server mysql-client
+# Enter password for the MySQL root user or leave blank
+```
+
+Download, compile and install Stacks like you did for the head node. If you
+have multiple worker nodes, it may be easier to have stacks in a mounted 
+location, then add the location to $PATH.
+
+
+Test you can access the MySQL database on the head node while you're logged in
+the worker node. Replace `XXX.XXX.XXX.XXX` with the IP of your head node.
+
+```bash
+mysql -u ubuntu -p -h XXX.XXX.XXX.XXX -P 9996
+```
+
+Change the stacks configuration file with the new MySQL settings for `user`, 
+`password`, `host`, and `port`.
+
+```bash
+sudo vi /usr/local/share/stacks/sql/mysql.cnf
+```
+
+```
+[client]
+user=ubuntu
+password=my_password
+host=XXX.XXX.XXX.XXX
+port=9996
+local-infile=1
+```
+
 
 -----
 
@@ -426,10 +498,10 @@ Edit export settings:
 sudo vi /usr/local/bin/stacks_export_notify.pl
 ```
 
-Change `$url` to:
+Change `$url` (and replace `XXX.XXX.XXX.XXX` with your IP) to:
 
 ```
-my $url           = "http://115.146.85.115/stacks/export/";
+my $url           = "http://XXX.XXX.XXX.XXX/stacks/export/";
 ```
 
 Test Stacks export through the web interface.
@@ -516,6 +588,8 @@ for the following scripts:
 /usr/local/bin/index_radtags.pl
 /usr/local/bin/load_sequences.pl
 ```
+
+Also change on worker nodes if necessary.
 
 ## Install Bowtie
 
@@ -638,3 +712,42 @@ And add:
   type: web
   virtual_path: /stacks
 ```
+
+## SLURM accounting
+
+In the slurm config file `/mnt/transient_nfs/slurm/slurm.conf`, make sure
+the following a set/present if you want `sacct` accounting.
+
+```
+JobCompType=jobcomp/filetxt
+JobCompLoc=/var/log/slurm/job_completions
+AccountingStorageType=accounting_storage/filetxt
+AccountingStorageLoc=/var/log/slurm-llnl/accounting
+```
+
+Restart slurm:
+
+```bash
+sudo service slurm-llnl restart
+```
+
+## SLURM custom wrappers
+
+For ease of use, add wrapper scripts.
+
+`/usr/local/bin/squeue-custom`:
+
+```
+#!/bin/bash
+# Wrapper for squeue for larger job column width and CPU column
+squeue -o "%.6i %.20j %.8u %.8T %.6M %.9l %.6C %.6D %R"
+```
+
+`/usr/local/bin/sinteractive`:
+
+```
+#!/bin/bash
+# Wrapper for interactive jobs copied from VLSCI clusters
+exec srun $* --pty -u ${SHELL} -i -l
+```
+
