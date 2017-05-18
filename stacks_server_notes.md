@@ -1,4 +1,9 @@
 # RAD-Seq Cluster Setup for the Hoffmann Lab
+
+This documentation assumes you want a cluster consisting of multiple VMs.
+If you only have one VM, you can leave Stacks to use the default MySQL
+settings (localhost) instead of setting up remote access.
+
 -----
 
 # Launch instance
@@ -61,7 +66,7 @@ sh setup_user.sh new_user_name
 Append the following line to the end of the new user's .bashrc file
 (e.g. `sudo vi /mnt/galaxy/home/new_user_name/.bashrc`):
 ```
-export PATH="/mnt/gvl/anaconda2/bin:$PATH"
+export PATH="/mnt/galaxy/gvl/stacks/bin:/mnt/gvl/anaconda2/bin:$PATH"
 ```
 
 -----
@@ -81,12 +86,20 @@ tar xzvf stacks-1.44.tar.gz
 cd stacks-1.44
 ```
 
-Compile and install Stacks.
+Compile and install Stacks on the volume.
 
 ```bash
-./configure
+mkdir /mnt/galaxy/gvl/stacks
+sudo chown ubuntu.ubuntu /mnt/galaxy/gvl/stacks/
+./configure --prefix=/mnt/galaxy/gvl/stacks/
 make
-sudo make install
+make install
+```
+
+Make a copy of the config file the stacks web server.
+
+```bash
+cp /mnt/galaxy/gvl/stacks/share/stacks/php/constants.php.dist /mnt/galaxy/gvl/stacks/share/stacks/php/constants.php
 ```
 
 -----
@@ -131,8 +144,7 @@ Remote: CIDR
 CIDR: 0.0.0.0/0
 ```
 
-Repeat the above '+ Add Rule' step to add port 9996 for MySQL if you have
-worker nodes.
+Repeat the above '+ Add Rule' step to add port 9996 for MySQL.
 
 Then add the security group to the instance you just launched:
 
@@ -141,7 +153,8 @@ and click the dropdown button on the right-most column. Then click 'Edit
 Security Groups' and click the '+' button next to the security group you just
 created to apply it to the instance.
 
-Test by seeing if you can access `<IP_address>`:81 in your browser.
+Test by seeing if you can access `<IP_address>:81/html` in your browser. You
+should see a html page with the heading "Apache2 Ubuntu Default Page".
 
 
 ## Install dependencies
@@ -158,7 +171,7 @@ sudo apt-get install libspreadsheet-writeexcel-perl
 Copy MySQL configuration file.
 
 ```bash
-cd /usr/local/share/stacks/sql/
+cd /mnt/galaxy/gvl/stacks/share/stacks/sql/
 sudo cp mysql.cnf.dist mysql.cnf
 ```
 
@@ -171,15 +184,15 @@ sudo mysql
 # sudo mysql -p
 ```
 
-In MySQL, add user `ubuntu` with a password e.g. (`my_password`) to MySQL. 
+In MySQL, add user `ubuntu` with a password e.g. (`my_password`) to MySQL.
 Make the password secure if you plan to access the database remotely with your
-worker nodes (i.e. you have more than one machine in your cluster).
+worker nodes.
 
 ```sql
 GRANT ALL ON *.* TO 'ubuntu'@'localhost' IDENTIFIED BY 'my_password';
 ```
 
-If you have worker nodes, allow access with:
+Allow remote access with:
 
 ```sql
 GRANT ALL ON *.* TO 'ubuntu'@'%' IDENTIFIED BY 'my_password';
@@ -217,17 +230,19 @@ less /var/log/mysql/error.log
 Change config for stacks MySQL access.
 
 ```bash
-sudo vi /usr/local/share/stacks/sql/mysql.cnf
+sudo vi /mnt/galaxy/gvl/stacks/share/stacks/sql/mysql.cnf
 ```
 
-And replace the user and password (and also the port if you have multiple 
-machines). eg:
+And replace the user, password, host (where `XXX.XXX.XXX.XXX` is your IP
+address), and port. eg:
 
 ```
+[client]
 user=ubuntu
 password=my_password
-host=localhost
+host=XXX.XXX.XXX.XXX
 port=9996
+local-infile=1
 ```
 
 ## Change location of the MySQL database (optional)
@@ -291,14 +306,14 @@ sudo vi /etc/apache2/conf-available/stacks.conf
 Add the following lines to the new file.
 
 ```
-<Directory "/usr/local/share/stacks/php/">
+<Directory "/mnt/galaxy/gvl/stacks/share/stacks/php/">
     Order deny,allow
     Deny from all
     Allow from all
 	Require all granted
 </Directory>
 
-Alias / "/usr/local/share/stacks/php/"
+Alias / "/mnt/galaxy/gvl/stacks/share/stacks/php/"
 ```
 
 Create a symlink to the conf file in the `conf-enabled` directory.
@@ -313,7 +328,6 @@ Restart apache.
 ```bash
 sudo service apache2 restart
 ```
-Check `<IP_address>`:81 which should have the Stacks interface.
 
 ## Configure nginx
 
@@ -350,8 +364,7 @@ Edit the PHP config file to allow access to MySQL using the `ubuntu` user and
 password.
 
 ```bash
-sudo cp /usr/local/share/stacks/php/constants.php.dist /usr/local/share/stacks/php/constants.php
-sudo vi /usr/local/share/stacks/php/constants.php
+vi /mnt/galaxy/gvl/stacks/share/stacks/php/constants.php
 ```
 
 Set `$db_user` and `$db_pass` variables to `ubuntu` and `my_password`.
@@ -371,21 +384,20 @@ Under the `[mysqld]` heading:
  - Change port to `9996`
  - change bind address to `0.0.0.0`
 
+Restart MySQL.
 
-## Configure Stacks on worker nodes
+```bash
+sudo service mysql restart
+```
 
-For each worker node, login and install MySQL like you did for the head node.
+## Configure worker nodes
+
+For each worker node, login and install the MySQL client.
 
 ```bash
 sudo apt-get update
-sudo apt-get install mysql-server mysql-client
-# Enter password for the MySQL root user or leave blank
+sudo apt-get install mysql-client
 ```
-
-Download, compile and install Stacks like you did for the head node. If you
-have multiple worker nodes, it may be easier to have stacks in a mounted 
-location, then add the location to $PATH.
-
 
 Test you can access the MySQL database on the head node while you're logged in
 the worker node. Replace `XXX.XXX.XXX.XXX` with the IP of your head node.
@@ -394,29 +406,12 @@ the worker node. Replace `XXX.XXX.XXX.XXX` with the IP of your head node.
 mysql -u ubuntu -p -h XXX.XXX.XXX.XXX -P 9996
 ```
 
-Change the stacks configuration file with the new MySQL settings for `user`, 
-`password`, `host`, and `port`.
-
-```bash
-sudo vi /usr/local/share/stacks/sql/mysql.cnf
-```
-
-```
-[client]
-user=ubuntu
-password=my_password
-host=XXX.XXX.XXX.XXX
-port=9996
-local-infile=1
-```
-
-
 -----
 
 ## Enable web-based exporting from the MySQL database (optional)
 
 ```bash
-sudo chown www-data /usr/local/share/stacks/php/export
+sudo chown www-data /mnt/galaxy/gvl/stacks/share/stacks/php/export
 ```
 
 ### Setup email
@@ -495,7 +490,7 @@ echo "Test" | mail -s "Mail test TLS" your_email_address@gmail.com
 Edit export settings:
 
 ```bash
-sudo vi /usr/local/bin/stacks_export_notify.pl
+sudo vi /mnt/galaxy/gvl/stacks/bin/stacks_export_notify.pl
 ```
 
 Change `$url` (and replace `XXX.XXX.XXX.XXX` with your IP) to:
@@ -556,19 +551,9 @@ conda install parallel
 # conda install openmpi
 ```
 
-
-The Stacks script which connects to MySQL requires modules in perl that aren't
-installed with the anaconda perl. Use `/usr/bin/perl` instead.
-
-```bash
-sudo vi /usr/local/bin/index_radtags.pl
-# Change the first line to:
-# #!/usr/bin/perl
-```
-
 ## Fix Stacks Perl
 
-Some Stacks Perl scripts require DBI which `/usr/bin/perl` can access, but not the 
+Some Stacks Perl scripts require DBI which `/usr/bin/perl` can access, but not the
 Anaconda Perl. Change the shebang from
 
 ```
@@ -584,12 +569,10 @@ to
 for the following scripts:
 
 ```
-/usr/local/bin/load_sequences.pl
-/usr/local/bin/index_radtags.pl
-/usr/local/bin/load_sequences.pl
+/mnt/galaxy/gvl/stacks/bin/export_sql.pl
+/mnt/galaxy/gvl/stacks/bin/index_radtags.pl
+/mnt/galaxy/gvl/stacks/bin/load_sequences.pl
 ```
-
-Also change on worker nodes if necessary.
 
 ## Install Bowtie
 
@@ -750,4 +733,3 @@ squeue -o "%.6i %.20j %.8u %.8T %.6M %.9l %.6C %.6D %R"
 # Wrapper for interactive jobs copied from VLSCI clusters
 exec srun $* --pty -u ${SHELL} -i -l
 ```
-
