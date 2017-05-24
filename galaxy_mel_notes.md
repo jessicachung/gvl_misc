@@ -101,6 +101,29 @@ to
 
 In the hammock tool page, uninstall hhsuite, then install it again.
 
+-----
+
+## MUMmer Suite
+
+Installed both tools and dependencies:
+ - mummer (peterjc)
+ - mummer_toolsuite (abossers)
+
+Path to MUMmer is hard coded in mummer_toolsuite
+
+```
+cd /mnt/galaxy/shed_tools/toolshed.g2.bx.psu.edu/repos/abossers/mummer_toolsuite/6753195df9e0/mummer_toolsuite/MUMmer
+grep /opt/MUMmer *
+```
+
+Change path from `/opt/MUMmer/MUMmer/$tool.cmd` to `/mnt/galaxy/tools/mummer/3.23/iuc/package_mummer_3_23/9ddc606546c3/$tool.cmd`.
+
+And also add dependencies to bash scripts:
+```
+source /mnt/galaxy/tools/mummer/3.23/iuc/package_mummer_3_23/9ddc606546c3/env.sh
+source /mnt/galaxy/tools/gnuplot/4.6/iuc/package_gnuplot_4_6/2d356c5a1354/env.sh
+```
+
 
 -----
 
