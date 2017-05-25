@@ -63,12 +63,6 @@ sh setup_user.sh new_user_name
 
 (Ignore warnings)
 
-Append the following line to the end of the new user's .bashrc file
-(e.g. `sudo vi /mnt/galaxy/home/new_user_name/.bashrc`):
-```
-export PATH="/mnt/galaxy/gvl/stacks/bin:/mnt/gvl/anaconda2/bin:$PATH"
-```
-
 -----
 
 # Install Stacks
@@ -89,7 +83,7 @@ cd stacks-1.44
 Compile and install Stacks on the volume.
 
 ```bash
-mkdir /mnt/galaxy/gvl/stacks
+sudo mkdir /mnt/galaxy/gvl/stacks
 sudo chown ubuntu.ubuntu /mnt/galaxy/gvl/stacks/
 ./configure --prefix=/mnt/galaxy/gvl/stacks/
 make
@@ -172,7 +166,7 @@ Copy MySQL configuration file.
 
 ```bash
 cd /mnt/galaxy/gvl/stacks/share/stacks/sql/
-sudo cp mysql.cnf.dist mysql.cnf
+cp mysql.cnf.dist mysql.cnf
 ```
 
 Run MySQL as root.
@@ -230,7 +224,7 @@ less /var/log/mysql/error.log
 Change config for stacks MySQL access.
 
 ```bash
-sudo vi /mnt/galaxy/gvl/stacks/share/stacks/sql/mysql.cnf
+vi /mnt/galaxy/gvl/stacks/share/stacks/sql/mysql.cnf
 ```
 
 And replace the user, password, host (where `XXX.XXX.XXX.XXX` is your IP
@@ -669,6 +663,16 @@ chmod +x *.sh
 Test if working by logging on with VNC.
 
 Copy to the Desktop directory of existing users.
+
+-----
+
+# Edit PATH
+
+Append the following to `PATH` in `/etc/environment` at the beginning.
+
+```
+/mnt/galaxy/gvl/stacks/bin:/mnt/gvl/anaconda2/bin:
+```
 
 -----
 
