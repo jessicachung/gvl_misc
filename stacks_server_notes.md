@@ -671,9 +671,14 @@ Copy to the Desktop directory of existing users.
 Append the following to `PATH` in `/etc/environment` at the beginning.
 
 ```
-/mnt/galaxy/gvl/stacks/bin:/mnt/gvl/anaconda2/bin:
+/mnt/galaxy/gvl/stacks/bin:/mnt/galaxy/gvl/anaconda2/bin:
 ```
 
+Or alternatively, add to the end of each user's `.bashrc` file:
+
+```
+export PATH="/mnt/galaxy/gvl/stacks/bin:/mnt/gvl/anaconda2/bin:$PATH"
+```
 -----
 
 # Optional aesthetic stuff
