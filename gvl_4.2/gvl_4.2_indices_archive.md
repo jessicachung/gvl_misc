@@ -127,3 +127,47 @@ swift upload \
     gvl-indices-tutorial-4.2.0.tar.gz \
     --object-name filesystems/gvl-indices-tutorial-4.2.0.tar.gz
 ```
+
+-----
+
+# Missing indices
+
+Some tools have missing indices.
+
+## Fix gatk2 indices
+
+GATK uses the table name: `gatk2_picard_indexes`
+
+Add to `mnt/galaxy/var/shed_tool_data_table_conf.xml`:
+
+```
+<table comment_char="#" name="gatk2_picard_indexes">
+        <columns>value, dbkey, name, path</columns>
+        <file path="/mnt/galaxyIndices/tool-data/dm/toolshed.g2.bx.psu.edu/repos/devteam/data_manager_gatk_picard_index_builder/b31f1fcb203c/gatk_sorted_picard_index.loc" />
+        <tool_shed_repository>
+            <tool_shed>toolshed.g2.bx.psu.edu</tool_shed>
+            <repository_name>gatk2</repository_name>
+            <repository_owner>iuc</repository_owner>
+            <installed_changeset_revision>84584664264c</installed_changeset_revision>
+            </tool_shed_repository>
+    </table>
+```
+
+## Fix picard indices
+
+Picard uses the table name: `picard_indexes`
+
+Add to `mnt/galaxy/var/shed_tool_data_table_conf.xml`:
+
+```
+<table comment_char="#" name="picard_indexes">
+        <columns>value, dbkey, name, path</columns>
+        <file path="/mnt/galaxyIndices/tool-data/dm/toolshed.g2.bx.psu.edu/repos/devteam/data_manager_gatk_picard_index_builder/b31f1fcb203c/gatk_sorted_picard_index.loc" />
+        <tool_shed_repository>
+            <tool_shed>toolshed.g2.bx.psu.edu</tool_shed>
+            <repository_name>picard</repository_name>
+            <repository_owner>devteam</repository_owner>
+            <installed_changeset_revision>fc288950c3b7</installed_changeset_revision>
+            </tool_shed_repository>
+    </table>
+```
