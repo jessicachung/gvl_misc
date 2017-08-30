@@ -90,6 +90,21 @@ make
 make install
 ```
 
+For the latest version (1.46) on 14.04, default compiler won't work.
+
+```bash
+sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+sudo apt-get update
+sudo apt-get install gcc-6
+sudo apt-get install g++-6
+export CXX=g++-6
+
+cd /mnt/galaxy/gvl/software/archives/stacks-1.46
+./configure --prefix=/mnt/galaxy/gvl/software/stacks-1.46/
+make
+make install
+```
+
 Make a copy of the config file the stacks web server.
 
 ```bash
@@ -158,6 +173,9 @@ sudo apt-get install mysql-server mysql-client
 # Enter password for the MySQL root user or leave blank
 sudo apt-get install php5 php5-mysqlnd
 sudo apt-get install libspreadsheet-writeexcel-perl
+
+# On ubuntu 16.04, only php7 is available
+sudo apt-get install libapache2-mod-php php7.0-mysql
 ```
 
 ## Configure MySQL
@@ -165,7 +183,7 @@ sudo apt-get install libspreadsheet-writeexcel-perl
 Copy MySQL configuration file.
 
 ```bash
-cd /mnt/galaxy/gvl/stacks/share/stacks/sql/
+cd /mnt/galaxy/gvl/software/stacks-1.46/share/stacks/sql/
 cp mysql.cnf.dist mysql.cnf
 ```
 
@@ -256,6 +274,8 @@ Then change the location in the config:
 
 ```bash
 sudo vi /etc/mysql/my.cnf
+# or
+# sudo vi /etc/mysql/mysql.conf.d/mysqld.cnf
 ```
 
 And change:
@@ -371,6 +391,7 @@ Configure MySQL for Stacks if you have multiple machines in your cluster.
 
 ```bash
 sudo vi /etc/mysql/my.cnf
+# sudo vi /etc/mysql/mysql.conf.d/mysqld.cnf
 ```
 
 Under the `[mysqld]` heading:
@@ -622,16 +643,20 @@ sudo tar -xjvf GenomeAnalysisTK-3.7.tar.bz2 --directory GenomeAnalysisTK-3.7
 sudo rm IGV_2.3.89.zip GenomeAnalysisTK-3.7.tar.bz2
 ```
 
-## Install Mediaflux
+## Install Mediaflux Explorer
 
-Download [Mediaflux](http://nsp.nectar.org.au/resplat-wiki/doku.php?id=data_management:mediaflux:downloads)
-and transfer it to the instance.
+[Mediaflux](https://vicnode.org.au/access/mediaflux/) will be used to interact with
+VicNode storage. Mediaflux Explorer is a Java application that can be used with VNC as a
+graphical interface.
 
-Make directory and move jar archive.
+Make directory and download jar archive.
 
 ```bash
-mkdir /mnt/gvl/apps/Mediaflux-1.0.5
+mkdir /mnt/galaxy/gvl/apps/Mediaflux && cd /mnt/galaxy/gvl/apps/Mediaflux
+wget https://wiki.cloud.unimelb.edu.au/resplat/lib/exe/fetch.php?media=wiki:public:mediaflux:mexplorer-1.3.9.jar
 ```
+
+Rename the archive.
 
 ## (Optional) Create wrapper scripts
 
@@ -643,7 +668,7 @@ Mediaflux wrapper (`vi mediaflux.sh`):
 ```
 #!/bin/bash
 
-/usr/bin/java -jar /mnt/gvl/apps/Mediaflux-1.0.5/mexplorer-1.0.5.jar
+/usr/bin/java -jar /mnt/galaxy/gvl/apps/Mediaflux/mexplorer-1.3.9.jar
 ```
 
 IGV wrapper (`vi igv.sh`):
@@ -681,6 +706,16 @@ export PATH="/mnt/galaxy/gvl/stacks/bin:/mnt/gvl/anaconda2/bin:$PATH"
 ```
 -----
 
+# Reboot
+
+If cluster reboots, you'll need to start apache and mysql again:
+
+```bash
+sudo service apache2 start
+sudo service mysql start
+```
+
+-----
 # Optional aesthetic stuff
 
 ## Add Stacks to the dashboard
