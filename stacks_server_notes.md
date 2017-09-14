@@ -47,7 +47,7 @@ Then install some packages.
 
 ```bash
 sudo apt-get update
-sudo apt-get install libdbd-mysql-perl
+sudo apt-get install libdbd-mysql-perl moshe speedometer
 ```
 
 # Create new users
@@ -75,22 +75,31 @@ Download the latest version of Stacks.
 ```bash
 cd ~
 mkdir software && cd software
-wget http://catchenlab.life.illinois.edu/stacks/source/stacks-1.44.tar.gz
-tar xzvf stacks-1.44.tar.gz
-cd stacks-1.44
+wget http://catchenlab.life.illinois.edu/stacks/source/stacks-1.47.tar.gz
+tar xzvf stacks-1.47.tar.gz
+cd stacks-1.47
 ```
 
 Compile and install Stacks on the volume.
 
 ```bash
-sudo mkdir /mnt/galaxy/gvl/stacks
-sudo chown ubuntu.ubuntu /mnt/galaxy/gvl/stacks/
-./configure --prefix=/mnt/galaxy/gvl/stacks/
+sudo mkdir /mnt/galaxy/gvl/software
+sudo chown ubuntu.ubuntu /mnt/galaxy/gvl/software
+mkdir /mnt/galaxy/gvl/software/stacks-1.47
+./configure --prefix=/mnt/galaxy/gvl/software/stacks-1.47/
 make
 make install
 ```
 
-For the latest version (1.46) on 14.04, default compiler won't work.
+Create a symlink for the latest version of stacks. This makes things easier if we want
+to update Stacks in the future.
+
+```
+ln -s stacks-1.47 /mnt/galaxy/gvl/software/stacks
+```
+
+If installing later versions of Stacks on Ubuntu 14.04, the default compiler won't work.
+You can install gcc6 with:
 
 ```bash
 sudo add-apt-repository ppa:ubuntu-toolchain-r/test
@@ -98,17 +107,13 @@ sudo apt-get update
 sudo apt-get install gcc-6
 sudo apt-get install g++-6
 export CXX=g++-6
-
-cd /mnt/galaxy/gvl/software/archives/stacks-1.46
-./configure --prefix=/mnt/galaxy/gvl/software/stacks-1.46/
-make
-make install
+# Then configure, make, and make install like above
 ```
 
 Make a copy of the config file the stacks web server.
 
 ```bash
-cp /mnt/galaxy/gvl/stacks/share/stacks/php/constants.php.dist /mnt/galaxy/gvl/stacks/share/stacks/php/constants.php
+cp /mnt/galaxy/gvl/software/stacks/share/stacks/php/constants.php.dist /mnt/galaxy/gvl/software/stacks/share/stacks/php/constants.php
 ```
 
 -----
@@ -183,7 +188,7 @@ sudo apt-get install libapache2-mod-php php7.0-mysql
 Copy MySQL configuration file.
 
 ```bash
-cd /mnt/galaxy/gvl/software/stacks-1.46/share/stacks/sql/
+cd /mnt/galaxy/gvl/software/stacks/share/stacks/sql/
 cp mysql.cnf.dist mysql.cnf
 ```
 
@@ -210,16 +215,20 @@ Allow remote access with:
 GRANT ALL ON *.* TO 'ubuntu'@'%' IDENTIFIED BY 'my_password';
 ```
 
-(Optional) Grant permissions to everyone at localhost.
+(Optional) Grant permissions to users at localhost.
 
 ```sql
-GRANT ALL ON *.* TO ''@'localhost' IDENTIFIED BY '';
+CREATE USER 'jess'@'localhost' IDENTIFIED BY '';
+GRANT ALL ON *.* TO 'jess'@'localhost';
 exit
 ```
 
 
 Note:
 ```
+# View users
+SELECT host, user FROM mysql.user;
+
 # To change password
 SET PASSWORD FOR 'ubuntu'@'localhost' = PASSWORD('my_new_password');
 
@@ -242,7 +251,7 @@ less /var/log/mysql/error.log
 Change config for stacks MySQL access.
 
 ```bash
-vi /mnt/galaxy/gvl/stacks/share/stacks/sql/mysql.cnf
+vi /mnt/galaxy/gvl/software/stacks/share/stacks/sql/mysql.cnf
 ```
 
 And replace the user, password, host (where `XXX.XXX.XXX.XXX` is your IP
@@ -257,25 +266,24 @@ port=9996
 local-infile=1
 ```
 
-## Change location of the MySQL database (optional)
+## Change location of the MySQL database and configure for remote access (optional)
 
 The amount of primary disk storage space is limited, so we need to move
 the mysql directory to transient or volume storage.
 
 ```bash
 sudo service mysql stop
-sudo mkdir /mnt/transient_nfs/mysql_database/
-# Or if you have volumne storage, use /mnt/galaxy/mysql_database
-sudo cp -rap /var/lib/mysql /mnt/transient_nfs/mysql_database/
-sudo chown mysql.mysql /mnt/transient_nfs/mysql_database
+sudo mkdir /mnt/galaxy/mysql_database
+sudo cp -rap /var/lib/mysql /mnt/galaxy/mysql_database
+sudo chown mysql.mysql /mnt/galaxy/mysql_database
 ```
 
 Then change the location in the config:
 
 ```bash
-sudo vi /etc/mysql/my.cnf
-# or
-# sudo vi /etc/mysql/mysql.conf.d/mysqld.cnf
+sudo vi /etc/mysql/mysql.conf.d/mysqld.cnf
+# For ubuntu 14.04
+# sudo vi /etc/mysql/my.cnf
 ```
 
 And change:
@@ -284,22 +292,29 @@ datadir     = /var/lib/mysql
 ```
 to
 ```
-datadir     = /mnt/transient_nfs/mysql_database/mysql
+datadir     = /mnt/galaxy/mysql_database/mysql
 ```
+
+Also configure MySQL for remote access by changing the following under the 
+`[mysqld]` heading:
+
+ - Change port to `9996`
+ - change bind address from `127.0.0.1` to `0.0.0.0`
+
 
 Edit Apparmor config:
 ```bash
 sudo vi /etc/apparmor.d/usr.sbin.mysqld
 ```
-Change two lines:
+Change two lines under `# Allow data dir access`:
 ```
-/var/lib/mysql/ r,                                                               
-/var/lib/mysql/** rwk,
+  /var/lib/mysql/ r,                                                               
+  /var/lib/mysql/** rwk,
 ```
 to
 ```
-/mnt/transient_nfs/mysql_database/mysql/ r,
-/mnt/transient_nfs/mysql_database/mysql/** rwk,
+  /mnt/galaxy/mysql_database/mysql/ r,
+  /mnt/galaxy/mysql_database/mysql/** rwk,
 ```
 
 Reload apparmor and start mysql.
@@ -320,14 +335,14 @@ sudo vi /etc/apache2/conf-available/stacks.conf
 Add the following lines to the new file.
 
 ```
-<Directory "/mnt/galaxy/gvl/stacks/share/stacks/php/">
+<Directory "/mnt/galaxy/gvl/software/stacks/share/stacks/php/">
     Order deny,allow
     Deny from all
     Allow from all
 	Require all granted
 </Directory>
 
-Alias / "/mnt/galaxy/gvl/stacks/share/stacks/php/"
+Alias / "/mnt/galaxy/gvl/software/stacks/share/stacks/php/"
 ```
 
 Create a symlink to the conf file in the `conf-enabled` directory.
@@ -378,32 +393,14 @@ Edit the PHP config file to allow access to MySQL using the `ubuntu` user and
 password.
 
 ```bash
-vi /mnt/galaxy/gvl/stacks/share/stacks/php/constants.php
+vi /mnt/galaxy/gvl/software/stacks/share/stacks/php/constants.php
 ```
 
-Set `$db_user` and `$db_pass` variables to `ubuntu` and `my_password`.
+Set `$db_user` and `$db_pass` variables to `ubuntu` and `my_password`. 
+Leave `$db_host` as `localhost`.
 
 -----
 
-## Configure remote MySQL access
-
-Configure MySQL for Stacks if you have multiple machines in your cluster.
-
-```bash
-sudo vi /etc/mysql/my.cnf
-# sudo vi /etc/mysql/mysql.conf.d/mysqld.cnf
-```
-
-Under the `[mysqld]` heading:
-
- - Change port to `9996`
- - change bind address to `0.0.0.0`
-
-Restart MySQL.
-
-```bash
-sudo service mysql restart
-```
 
 ## Configure worker nodes
 
@@ -426,7 +423,7 @@ mysql -u ubuntu -p -h XXX.XXX.XXX.XXX -P 9996
 ## Enable web-based exporting from the MySQL database (optional)
 
 ```bash
-sudo chown www-data /mnt/galaxy/gvl/stacks/share/stacks/php/export
+sudo chown www-data /mnt/galaxy/gvl/software/stacks/share/stacks/php/export
 ```
 
 ### Setup email
@@ -505,7 +502,7 @@ echo "Test" | mail -s "Mail test TLS" your_email_address@gmail.com
 Edit export settings:
 
 ```bash
-sudo vi /mnt/galaxy/gvl/stacks/bin/stacks_export_notify.pl
+sudo vi /mnt/galaxy/gvl/software/stacks/bin/stacks_export_notify.pl
 ```
 
 Change `$url` (and replace `XXX.XXX.XXX.XXX` with your IP) to:
@@ -528,17 +525,17 @@ Use bioconda to install software.
 Download and install Anaconda.
 
 ```bash
-wget https://repo.continuum.io/archive/Anaconda2-4.2.0-Linux-x86_64.sh
-bash Anaconda2-4.2.0-Linux-x86_64.sh
+wget https://repo.continuum.io/archive/Anaconda2-4.4.0-Linux-x86_64.sh
+sudo bash Anaconda2-4.4.0-Linux-x86_64.sh
 # Accept license
 # Set directory as:
-/mnt/gvl/anaconda2
+/mnt/galaxy/gvl/anaconda2
 # Append to bashrc
 # Refresh bashrc
 source ~/.bashrc
 
 # Change ownership of directory
-sudo chown -R ubuntu:ubuntu /mnt/gvl/anaconda2
+sudo chown -R ubuntu:ubuntu /mnt/galaxy/gvl/anaconda2
 ```
 
 Setup channels
@@ -559,7 +556,7 @@ conda install bwa=0.7.15
 conda install snap-aligner=1.0beta.18
 conda install samtools=1.3.1
 conda install vcftools=0.1.14
-conda install plink2=1.90b3.35
+conda install plink2
 conda install parallel
 
 # openmpi is already installed but v1.8.5
@@ -584,9 +581,9 @@ to
 for the following scripts:
 
 ```
-/mnt/galaxy/gvl/stacks/bin/export_sql.pl
-/mnt/galaxy/gvl/stacks/bin/index_radtags.pl
-/mnt/galaxy/gvl/stacks/bin/load_sequences.pl
+/mnt/galaxy/gvl/software/stacks/bin/export_sql.pl
+/mnt/galaxy/gvl/software/stacks/bin/index_radtags.pl
+/mnt/galaxy/gvl/software/stacks/bin/load_sequences.pl
 ```
 
 ## Install Bowtie
@@ -595,8 +592,8 @@ Conda may not have the latest versions of bowtie. Check http://bioconda.github.i
 before installing.
 
 ```bash
-conda install bowtie=1.2.0
-conda install bowtie2=2.3.0
+conda install bowtie
+conda install bowtie2
 ```
 
 Or download and extract archives then compile from source.
@@ -627,20 +624,20 @@ sudo make install
 Download the software from the Broad Institute and transfer it to the instance.
 
 ```bash
-cd /mnt/gvl/apps
+cd /mnt/galaxy/gvl/software/
 # Jess' personal copies in object store:
-# sudo wget https://swift.rc.nectar.org.au:8888/v1/AUTH_377/jchung/IGV_2.3.89.zip
-# sudo wget https://swift.rc.nectar.org.au:8888/v1/AUTH_377/jchung/GenomeAnalysisTK-3.7.tar.bz2
+# wget https://swift.rc.nectar.org.au:8888/v1/AUTH_377/jchung/IGV_2.3.89.zip
+# wget https://swift.rc.nectar.org.au:8888/v1/AUTH_377/jchung/GenomeAnalysisTK-3.7.tar.bz2
 ```
 
 Extract the archives.
 
 ```bash
-sudo unzip IGV_2.3.89.zip
-sudo mkdir GenomeAnalysisTK-3.7
-sudo tar -xjvf GenomeAnalysisTK-3.7.tar.bz2 --directory GenomeAnalysisTK-3.7
+unzip IGV_2.3.89.zip
+mkdir GenomeAnalysisTK-3.7
+tar -xjvf GenomeAnalysisTK-3.7.tar.bz2 --directory GenomeAnalysisTK-3.7
 # Clean up archives
-sudo rm IGV_2.3.89.zip GenomeAnalysisTK-3.7.tar.bz2
+rm IGV_2.3.89.zip GenomeAnalysisTK-3.7.tar.bz2
 ```
 
 ## Install Mediaflux Explorer
@@ -652,7 +649,7 @@ graphical interface.
 Make directory and download jar archive.
 
 ```bash
-mkdir /mnt/galaxy/gvl/apps/Mediaflux && cd /mnt/galaxy/gvl/apps/Mediaflux
+mkdir /mnt/galaxy/gvl/software/Mediaflux && cd /mnt/galaxy/gvl/software/Mediaflux
 wget https://wiki.cloud.unimelb.edu.au/resplat/lib/exe/fetch.php?media=wiki:public:mediaflux:mexplorer-1.3.9.jar
 ```
 
@@ -668,7 +665,7 @@ Mediaflux wrapper (`vi mediaflux.sh`):
 ```
 #!/bin/bash
 
-/usr/bin/java -jar /mnt/galaxy/gvl/apps/Mediaflux/mexplorer-1.3.9.jar
+/usr/bin/java -jar /mnt/galaxy/gvl/software/Mediaflux/mexplorer-1.3.9.jar
 ```
 
 IGV wrapper (`vi igv.sh`):
@@ -677,7 +674,7 @@ IGV wrapper (`vi igv.sh`):
 
 /usr/bin/java \
     -Xmx4g \
-    -jar /mnt/gvl/apps/IGV_2.3.89/igv.jar
+    -jar /mnt/galaxy/gvl/software/IGV_2.3.89/igv.jar
 ```
 
 Make executable.
@@ -696,7 +693,7 @@ Copy to the Desktop directory of existing users.
 Append the following to `PATH` in `/etc/environment` at the beginning.
 
 ```
-/mnt/galaxy/gvl/stacks/bin:/mnt/galaxy/gvl/anaconda2/bin:
+/mnt/galaxy/gvl/software/stacks/bin:/mnt/galaxy/gvl/anaconda2/bin:
 ```
 
 Or alternatively, add to the end of each user's `.bashrc` file:
@@ -742,21 +739,37 @@ And add:
 
 ## SLURM accounting
 
-In the slurm config file `/mnt/transient_nfs/slurm/slurm.conf`, make sure
-the following a set/present if you want `sacct` accounting.
+Note that adding the accounting config to `/mnt/transient_nfs/slurm/slurm.conf`
+directly won't create the accounting file and won't work in GVL 4.2.
+
+Interfacing with slurm via `service` no longer works. Need to start/stop via 
+cloudman in GVL 4.2.
+
+Add accounting storage config to the Cloudman template.
 
 ```
-JobCompType=jobcomp/filetxt
-JobCompLoc=/var/log/slurm/job_completions
+sudo vi /mnt/cm/cm/conftemplates/slurm.conf.default
+```
+
+Add the below lines to the logging section (e.g. under `JobCompType`)
+
+```
 AccountingStorageType=accounting_storage/filetxt
 AccountingStorageLoc=/var/log/slurm-llnl/accounting
 ```
 
-Restart slurm:
+Go to the CloudMan interface and restart slurmd and slurmctld.
 
-```bash
-sudo service slurm-llnl restart
+Check with `sacct`.
+
+The accounting file needs to be readable. Change it with 
 ```
+sudo chmod a+r /var/log/slurm-llnl/accounting
+```
+
+Each time the VM does a reboot, cloudman is re-downloaded from the container so
+you may need to change the default template again.
+
 
 ## SLURM custom wrappers
 
@@ -777,3 +790,66 @@ squeue -o "%.6i %.20j %.8u %.8T %.6M %.9l %.6C %.6D %R"
 # Wrapper for interactive jobs copied from VLSCI clusters
 exec srun $* --pty -u ${SHELL} -i -l
 ```
+
+## Change hostname
+
+From https://www.cyberciti.biz/faq/ubuntu-change-hostname-command/
+
+```bash
+sudo hostname mozzie
+```
+
+Update the hostname in the file.
+```bash
+sudo vi /etc/hostname
+```
+
+Update the lines with the old hostname to the new hostname.
+```bash
+sudo vi /etc/hosts
+```
+
+Reboot or change hostname in slurm config.
+
+```
+# sudo reboot
+# sudo vi /mnt/transient_nfs/slurm/slurm.conf
+```
+
+
+-----
+
+# Rebuilding the VM
+
+2017-09-12: Moved the VM to a different availability zone due to resources. Snapshot 
+the VM from the nectar dashboard. Get the AMI number of the snapshot using boto to 
+connect to the EC2 API. Use the GVL launcher's custom image option to launch the image. 
+Also change the location to uom in persistent_data.yaml (download, edit, re-upload) in
+the cm container.
+
+Cloudman doesn't automatically start up if there's no virtual environment. 
+
+As ubuntu, install virtualenv-burrito.
+
+```
+curl -sL https://raw.githubusercontent.com/brainsik/virtualenv-burrito/master/virtualenv-burrito.sh | $SHELL
+source ~/.venvburrito/startup.sh
+mkvirtualenv CM
+cd /mnt/cm/
+pip install -r requirements.txt
+sudo reboot
+```
+
+Re-add security groups. Re-activate slurm accounting. Start up stacks web server.
+
+Start up jupyterhub if it fails
+
+```
+sudo systemctl start jupyterhub.service
+```
+
+Note that launching new workers will use the image. If there's no virtualenv-burrito, 
+cloudman won't start and the workers won't connect. 
+
+-----
+
